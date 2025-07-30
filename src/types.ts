@@ -10,11 +10,11 @@ export type Camera={
   zoom:number
 }
 
-export enum LayerType{
-  Rectangle,
-  Ellipse,
-  Path,
-  Text
+export enum LayerType {
+  Rectangle = "Rectangle",
+  Ellipse = "Ellipse",
+  Path = "Path",
+  Text = "Text"
 }
 
 export type RectangleLayer={

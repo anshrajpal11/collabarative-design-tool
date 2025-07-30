@@ -4,9 +4,12 @@ import { memo } from "react";
 import { string } from "zod";
 import { LayerType } from "~/types";
 import Rectangle from "./Rectangle";
+import Ellipse from "./Ellipse";
 
 export const LayerComponent = memo(({id}:{id:string})=>{
   const layer = useStorage((root)=>root.layers.get(id));
+
+
   if(!layer){
     return null;
   }
@@ -14,6 +17,9 @@ export const LayerComponent = memo(({id}:{id:string})=>{
   switch(layer.type){
     case LayerType.Rectangle:
       return <Rectangle id={id} layer={layer}/>
+    case LayerType.Ellipse:
+      return <Ellipse id={id} layer={layer}/>
+    
     
     default:
       return null;
