@@ -6,26 +6,28 @@ import { LayerType } from "~/types";
 import Rectangle from "./Rectangle";
 import Ellipse from "./Ellipse";
 
-export const LayerComponent = memo(({id}:{id:string})=>{
-  const layer = useStorage((root)=>root.layers.get(id));
+export const LayerComponent = memo(({ id }: { id: string }) => {
+  const layer = useStorage((root) => root.layers.get(id));
 
-
-  if(!layer){
+  if (!layer) {
     return null;
   }
 
-  switch(layer.type){
+  console.log("LayerComponent - layer type:", layer.type);
+  console.log("LayerComponent - layer:", layer);
+
+  switch (layer.type) {
     case LayerType.Rectangle:
-      return <Rectangle id={id} layer={layer}/>
+      console.log("Rendering Rectangle component");
+      return <Rectangle id={id} layer={layer} />;
     case LayerType.Ellipse:
-      return <Ellipse id={id} layer={layer}/>
-    
-    
+      console.log("Rendering Ellipse component");
+      return <Ellipse id={id} layer={layer} />;
+
     default:
+      console.log("Unknown layer type:", layer.type);
       return null;
   }
-  
-
 });
 
-LayerComponent.displayName="LayerComponent";
+LayerComponent.displayName = "LayerComponent";
