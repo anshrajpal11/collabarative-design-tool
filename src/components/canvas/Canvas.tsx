@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useStorage } from "@liveblocks/react";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { pointerEventToCanvasPoint, rgbToHex } from "~/utils";
 import { LayerComponent } from "./LayerComponent";
 import {
@@ -84,12 +84,59 @@ const Canvas = () => {
     [],
   );
 
-  const onPointerUp = useMutation(({}, e: React.PointerEvent) => {
-    const point = pointerEventToCanvasPoint(e, camera);
-    console.log("Creating ellipse at point:", point);
-    console.log("LayerType.Ellipse value:", LayerType.Ellipse);
-    insertLayer(LayerType.Ellipse, point);
+  const onWheel = useCallback((e: React.WheelEvent) => {
+    setCamera((camera) => ({
+      x: camera.x - e.deltaX,
+      y: camera.y - e.deltaY,
+      zoom: camera.zoom,
+    }));
   }, []);
+
+  const onPointerDown = useMutation(
+    ({}, e: React.PointerEvent) => {
+      const point = pointerEventToCanvasPoint(e, camera);
+      if(canvasState.mode === CanvasMode.Dragging){
+        setState({mode:CanvasMode.Dragging,origin:point})
+      }
+
+    },[canvasState, setState, insertLayer]);
+
+
+  const onPointerMove = useMutation(
+  ({}, e: React.PointerEvent) => {
+    if (canvasState.mode === CanvasMode.Dragging && canvasState.origin) {
+      const deltaX = e.movementX;
+      const deltaY = e.movementY;
+
+      setCamera((prev) => ({
+        x: prev.x + deltaX,
+        y: prev.y + deltaY,
+        zoom: prev.zoom,
+      }));
+    }
+  },
+  [canvasState] // no need to include `camera` or `setCamera` in dependencies if you're using the functional updater
+);
+
+
+ 
+
+  const onPointerUp = useMutation(
+    ({}, e: React.PointerEvent) => {
+      const point = pointerEventToCanvasPoint(e, camera);
+      if (canvasState.mode === CanvasMode.None) {
+        setState({ mode: CanvasMode.None });
+      } else if (canvasState.mode === CanvasMode.Inserting) {
+        insertLayer(canvasState.layerType, point);
+      }
+      else if(canvasState.mode===CanvasMode.Dragging){
+        setState({mode:CanvasMode.Dragging,origin:null})
+      }
+    },
+    [canvasState, setState, insertLayer],
+  );
+
+
 
   return (
     <div className="flex h-screen w-full">
@@ -100,8 +147,18 @@ const Canvas = () => {
           }}
           className="h-full w-full touch-none"
         >
-          <svg onPointerUp={onPointerUp} className="h-full w-full">
-            <g>
+          <svg
+            onWheel={onWheel}
+            onPointerUp={onPointerUp}
+            className="h-full w-full"
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+          >
+            <g
+              style={{
+                transform: `translate(${camera.x}px,${camera.y}px) scale(${camera.zoom})`,
+              }}
+            >
               {layerIds?.map((layerId) => {
                 return <LayerComponent key={layerId} id={layerId} />;
               })}
@@ -113,6 +170,14 @@ const Canvas = () => {
       <Toolsbar
         canvasState={canvasState}
         setCanvasState={(newState) => setState(newState)}
+        zoomIn={() => {
+          setCamera((camera) => ({ ...camera, zoom: camera.zoom + 0.1 }));
+        }}
+        zoomOut={() => {
+          setCamera((camera) => ({ ...camera, zoom: camera.zoom - 0.1 }));
+        }}
+        canZoomIn={camera.zoom < 2}
+        canZoomOut={camera.zoom > 0.5}
       />
     </div>
   );
