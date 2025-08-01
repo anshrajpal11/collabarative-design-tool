@@ -1,8 +1,8 @@
 "use client";
 
-import { useMutation, useStorage } from "@liveblocks/react";
+import { useMutation, useSelf, useStorage } from "@liveblocks/react";
 import React, { useCallback, useEffect, useState } from "react";
-import { pointerEventToCanvasPoint, rgbToHex } from "~/utils";
+import { penPointToPathLayer, pointerEventToCanvasPoint, rgbToHex } from "~/utils";
 import { LayerComponent } from "./LayerComponent";
 import {
   type Camera,
@@ -13,16 +13,20 @@ import {
   type EllipseLayer,
   type CanvasState,
   CanvasMode,
+  type TextLayer,
 } from "~/types";
 import { LiveObject } from "@liveblocks/client";
 import { nanoid } from "nanoid";
 import Toolsbar from "../toolsbar/Toolsbar";
+import { E } from "node_modules/@liveblocks/react/dist/room-DRYXmQT5";
+import Path from "./Path";
 
 const MAX_LAYERS = 100;
 
 const Canvas = () => {
   const roomColor = useStorage((root) => root.roomColor);
   const layerIds = useStorage((root) => root.layerIds);
+  const pencilDraft = useSelf((me) => me.presence.pencilDraft);
   const [canvasState, setState] = useState<CanvasState>({
     mode: CanvasMode.None,
   });
@@ -72,6 +76,22 @@ const Canvas = () => {
           opacity: 100,
         });
       }
+      else if(layerType===LayerType.Text){
+        layer = new LiveObject<TextLayer>({
+          type: LayerType.Text,
+          x: position.x,
+          y: position.y,
+          text: "Text",
+          height:100,
+          width:100,
+          fill: { r: 217, g: 217, b: 217 },
+          stroke: { r: 217, g: 217, b: 217 },
+          opacity:100,
+          fontSize:16,
+          fontWeight:400,
+          fontFamily:"Inter"
+        })
+      }
 
       console.log("Created layer:", layer);
 
@@ -82,6 +102,55 @@ const Canvas = () => {
       }
     },
     [],
+  );
+
+  const insertPath = useMutation(({ storage, self, setMyPresence }) => {
+    const liveLayers = storage.get("layers");
+    const { pencilDraft } = self.presence;
+    if (
+      pencilDraft === null ||
+      pencilDraft.length < 2 ||
+      liveLayers.size >= MAX_LAYERS
+    ) {
+      setMyPresence({pencilDraft:null});
+      return;
+    }
+
+    const id = nanoid();
+    liveLayers.set(id,new LiveObject(penPointToPathLayer(pencilDraft,{r:217,g:217,b:217})))
+
+    const liveLayerIds = storage.get("layerIds");
+    liveLayerIds.push(id);
+    setMyPresence({pencilDraft:null});
+    setState({mode:CanvasMode.Pencil})
+  }, []);
+
+  const startDrawing = useMutation(
+    ({ setMyPresence }, point: Point, pressure: number) => {
+      setMyPresence({
+        pencilDraft: [[point.x, point.y, pressure]],
+        penColor: { r: 217, g: 217, b: 217 },
+      });
+    },
+    [],
+  );
+
+  const continueDrawing = useMutation(
+    ({ self, setMyPresence }, point: Point, e: React.PointerEvent) => {
+      const { pencilDraft } = self.presence;
+      if (
+        canvasState.mode !== CanvasMode.Pencil ||
+        e.buttons !== 1 ||
+        pencilDraft == null
+      ) {
+        return;
+      }
+      setMyPresence({
+        pencilDraft: [...pencilDraft, [point.x, point.y, e.pressure]],
+        penColor: { r: 217, g: 217, b: 217 },
+      });
+    },
+    [canvasState.mode],
   );
 
   const onWheel = useCallback((e: React.WheelEvent) => {
@@ -95,31 +164,36 @@ const Canvas = () => {
   const onPointerDown = useMutation(
     ({}, e: React.PointerEvent) => {
       const point = pointerEventToCanvasPoint(e, camera);
-      if(canvasState.mode === CanvasMode.Dragging){
-        setState({mode:CanvasMode.Dragging,origin:point})
+      if (canvasState.mode === CanvasMode.Dragging) {
+        setState({ mode: CanvasMode.Dragging, origin: point });
+        return;
       }
-
-    },[canvasState, setState, insertLayer]);
-
+      if (canvasState.mode === CanvasMode.Pencil) {
+        startDrawing(point, e.pressure);
+        return;
+      }
+    },
+    [canvasState, setState, insertLayer, startDrawing],
+  );
 
   const onPointerMove = useMutation(
-  ({}, e: React.PointerEvent) => {
-    if (canvasState.mode === CanvasMode.Dragging && canvasState.origin) {
-      const deltaX = e.movementX;
-      const deltaY = e.movementY;
+    ({}, e: React.PointerEvent) => {
+      const point = pointerEventToCanvasPoint(e, camera);
+      if (canvasState.mode === CanvasMode.Dragging && canvasState.origin) {
+        const deltaX = e.movementX;
+        const deltaY = e.movementY;
 
-      setCamera((prev) => ({
-        x: prev.x + deltaX,
-        y: prev.y + deltaY,
-        zoom: prev.zoom,
-      }));
-    }
-  },
-  [canvasState] // no need to include `camera` or `setCamera` in dependencies if you're using the functional updater
-);
-
-
- 
+        setCamera((prev) => ({
+          x: prev.x + deltaX,
+          y: prev.y + deltaY,
+          zoom: prev.zoom,
+        }));
+      } else if (canvasState.mode === CanvasMode.Pencil) {
+        continueDrawing(point, e);
+      }
+    },
+    [canvasState, setState, insertLayer, continueDrawing],
+  );
 
   const onPointerUp = useMutation(
     ({}, e: React.PointerEvent) => {
@@ -128,15 +202,14 @@ const Canvas = () => {
         setState({ mode: CanvasMode.None });
       } else if (canvasState.mode === CanvasMode.Inserting) {
         insertLayer(canvasState.layerType, point);
-      }
-      else if(canvasState.mode===CanvasMode.Dragging){
-        setState({mode:CanvasMode.Dragging,origin:null})
+      } else if (canvasState.mode === CanvasMode.Dragging) {
+        setState({ mode: CanvasMode.Dragging, origin: null });
+      } else if (canvasState.mode === CanvasMode.Pencil) {
+        insertPath();
       }
     },
     [canvasState, setState, insertLayer],
   );
-
-
 
   return (
     <div className="flex h-screen w-full">
@@ -163,6 +236,11 @@ const Canvas = () => {
                 return <LayerComponent key={layerId} id={layerId} />;
               })}
             </g>
+            
+
+            
+            {pencilDraft!==null  && pencilDraft.length>0 && <Path x={0} y={0} fill={rgbToHex({r:217,g:217,b:217})}  points={pencilDraft} opacity={100} /> }
+
           </svg>
         </div>
       </main>

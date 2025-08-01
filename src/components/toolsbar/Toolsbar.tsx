@@ -4,6 +4,8 @@ import SelectionButton from "./SelectionButton";
 import ShapesSelectionButton from "./ShapeSelectionButton";
 import ZoomInButton from "./ZoomInButton";
 import ZoomOutButton from "./ZoomOutButton";
+import PencilButton from "../canvas/PencilButton";
+import TextButton from "./TextButton";
 
 export default function Toolsbar({
   canvasState,
@@ -46,16 +48,24 @@ export default function Toolsbar({
             )
           }
           canvasState={canvasState}
-          onClick={(layerType)=>setCanvasState({mode:CanvasMode.Inserting,layerType})}
+          onClick={(layerType) =>
+            setCanvasState({ mode: CanvasMode.Inserting, layerType })
+          }
         />
 
-        <div className="w-[1px] self-stretch bg-black/10"/>
+        <PencilButton
+          isActive={canvasState.mode === CanvasMode.Pencil}
+          onClick={() => setCanvasState({ mode: CanvasMode.Pencil })}
+        />
+
+        <TextButton isActive={canvasState.mode===CanvasMode.Inserting && canvasState.layerType===LayerType.Text} onClick={()=>setCanvasState({mode:CanvasMode.Inserting,layerType:LayerType.Text})}/>
+
+        <div className="w-[1px] self-stretch bg-black/10" />
 
         <div className="flex items-center justify-center">
-          <ZoomInButton onClick={zoomIn} disabled={!canZoomIn}/>
+          <ZoomInButton onClick={zoomIn} disabled={!canZoomIn} />
           <ZoomOutButton onClick={zoomOut} disabled={!canZoomOut} />
         </div>
-
       </div>
     </div>
   );

@@ -39,7 +39,7 @@ export default function ShapesSelectionButton({
           <IconButton isActive={isActive} onClick={() => onClick(LayerType.Rectangle)}>
             {canvasState.mode!==CanvasMode.Inserting && <IoSquareOutline className="h-5 w-5"/> }
             {canvasState.mode===CanvasMode.Inserting && canvasState.layerType===LayerType.Ellipse && <IoEllipseOutline className="h-5 w-5"/> }
-            {canvasState.mode===CanvasMode.Inserting && canvasState.layerType===LayerType.Rectangle && <IoSquareOutline className="h-5 w-5"/> }
+            {canvasState.mode===CanvasMode.Inserting && (canvasState.layerType===LayerType.Rectangle || canvasState.layerType===LayerType.Text  ) && <IoSquareOutline className="h-5 w-5"/> }
             
           </IconButton>
     
@@ -62,7 +62,7 @@ export default function ShapesSelectionButton({
                 onClick={() => handleClick(LayerType.Rectangle)}
               >
                 <span className="w-5 text-xs">
-                  {canvasState.mode === CanvasMode.Inserting && canvasState.layerType===LayerType.Rectangle && "✓"}
+                  {(canvasState.mode === CanvasMode.Inserting) && canvasState.layerType===LayerType.Rectangle && "✓"}
                 </span>
                 <IoSquareOutline className="mr-2 h-4 w-4" />
                 <span className="text-xs">Rectangle</span>

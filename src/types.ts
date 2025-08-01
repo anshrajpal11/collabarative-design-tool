@@ -87,10 +87,15 @@ export type CanvasState =
     mode:CanvasMode.Dragging;
     origin:Point|null;
   }
+  | 
+  {
+    mode: CanvasMode.Pencil;
+  }
   ;
 
 export enum CanvasMode {
   None,
   Dragging,
   Inserting,
+  Pencil
 }
