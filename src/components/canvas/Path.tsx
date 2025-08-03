@@ -9,6 +9,7 @@ export default function Path({
   fill,
   opacity,
   points,
+  onPointerDown
 }: {
   x: number;
   y: number;
@@ -16,6 +17,7 @@ export default function Path({
   fill: string;
   opacity: number;
   points: number[][];
+  onPointerDown?: (e: React.PointerEvent) => void;
 }) {
   const pathData = getSvgPathFromStroke(
     getStroke(points, {
@@ -34,6 +36,7 @@ export default function Path({
       stroke={stroke ?? "#CCC" }
       strokeWidth={1}
       opacity={`${opacity??100}%`}
+      onPointerDown={onPointerDown}
     />
   );
 }

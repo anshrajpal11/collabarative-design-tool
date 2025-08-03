@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation, useSelf, useStorage } from "@liveblocks/react";
+import { useMutation, useMyPresence, useSelf, useStorage } from "@liveblocks/react";
 import React, { useCallback, useEffect, useState } from "react";
 import { penPointToPathLayer, pointerEventToCanvasPoint, rgbToHex } from "~/utils";
 import { LayerComponent } from "./LayerComponent";
@@ -27,10 +27,15 @@ const Canvas = () => {
   const roomColor = useStorage((root) => root.roomColor);
   const layerIds = useStorage((root) => root.layerIds);
   const pencilDraft = useSelf((me) => me.presence.pencilDraft);
+  const presence = useMyPresence();
   const [canvasState, setState] = useState<CanvasState>({
     mode: CanvasMode.None,
   });
   const [camera, setCamera] = useState<Camera>({ x: 0, y: 0, zoom: 1 });
+
+
+  
+
 
   const onLayerPointerDown = useMutation(
     ({ self, setMyPresence }, e: React.PointerEvent, layerId: string) => {
@@ -263,8 +268,10 @@ const Canvas = () => {
                   key={layerId}
                   id={layerId}
                   onLayerPointerDown={onLayerPointerDown}
+                  
                 />;
               })}
+              
             </g>
             
 
