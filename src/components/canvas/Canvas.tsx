@@ -32,6 +32,32 @@ const Canvas = () => {
   });
   const [camera, setCamera] = useState<Camera>({ x: 0, y: 0, zoom: 1 });
 
+  const onLayerPointerDown = useMutation(
+    ({ self, setMyPresence }, e: React.PointerEvent, layerId: string) => {
+      if (
+        canvasState.mode === CanvasMode.Pencil ||
+        canvasState.mode === CanvasMode.Inserting
+      ) {
+        return;
+      }
+
+     
+      e.stopPropagation();
+      if (!self.presence.selection.includes(layerId)) {
+        setMyPresence(
+          {
+            selection: [layerId],
+          },
+          { addToHistory: true },
+        );
+      }
+
+     
+    },
+    [camera, canvasState.mode, history],
+  );
+
+
   const insertLayer = useMutation(
     (
       { storage, setMyPresence },
@@ -233,7 +259,11 @@ const Canvas = () => {
               }}
             >
               {layerIds?.map((layerId) => {
-                return <LayerComponent key={layerId} id={layerId} />;
+                return <LayerComponent
+                  key={layerId}
+                  id={layerId}
+                  onLayerPointerDown={onLayerPointerDown}
+                />;
               })}
             </g>
             

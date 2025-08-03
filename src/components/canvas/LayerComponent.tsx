@@ -1,7 +1,6 @@
 import { useStorage } from "@liveblocks/react";
 
 import { memo } from "react";
-import { string } from "zod";
 import { LayerType } from "~/types";
 import Rectangle from "./Rectangle";
 import Ellipse from "./Ellipse";
@@ -9,7 +8,7 @@ import Path from "./Path";
 import { rgbToHex } from "~/utils";
 import Text from "./Text";
 
-export const LayerComponent = memo(({ id }: { id: string }) => {
+export const LayerComponent = memo(({ id,onLayerPointerDown,}: { id: string,onLayerPointerDown: (e: React.PointerEvent, layerId: string) => void; }) => {
   const layer = useStorage((root) => root.layers.get(id));
 
   if (!layer) {
@@ -32,14 +31,15 @@ export const LayerComponent = memo(({ id }: { id: string }) => {
         />
       );
     case LayerType.Rectangle:
-      console.log("Rendering Rectangle component");
+      
       return <Rectangle id={id} layer={layer} />;
     case LayerType.Ellipse:
-      console.log("Rendering Ellipse component");
+     
       return <Ellipse id={id} layer={layer} />;
     case LayerType.Text:
-      console.log("Rendering Text component");
-      return <Text id={id} layer={layer} />;
+      return (
+          <Text onPointerDown={onLayerPointerDown} id={id} layer={layer} />
+      );
 
     default:
       return null;
